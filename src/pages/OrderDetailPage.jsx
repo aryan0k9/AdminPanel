@@ -825,28 +825,29 @@ export default function OrderDetailPage() {
                   const c = STATUS_COLOR[s]
                   const isActive = order.status === s
                   const isLocked = order.status === 'active' && (s === 'pending' || s === 'in_review')
-                  const isDisabled = updatingStatus || isLocked
+                  const needsPayment = s === 'active' && order.payment_status === 'unpaid' && order.status !== 'active'
+                  const isDisabled = updatingStatus || isLocked || needsPayment
                   return (
                     <button
                       key={s}
                       disabled={isDisabled}
                       onClick={() => handleStatusChange(s)}
-                      title={isLocked ? 'Cannot revert to this status once Active' : undefined}
+                      title={isLocked ? 'Cannot revert to this status once Active' : needsPayment ? 'Payment must be received before setting Active' : undefined}
                       style={{
                         padding: '10px 16px', borderRadius: 10,
-                        border: `2px solid ${isActive ? c.dot : isLocked ? '#e5e7eb' : '#e5e7eb'}`,
-                        background: isActive ? c.bg : isLocked ? '#f9fafb' : 'white',
-                        color: isActive ? c.text : isLocked ? '#c4c9d4' : '#374151',
+                        border: `2px solid ${isActive ? c.dot : '#e5e7eb'}`,
+                        background: isActive ? c.bg : (isLocked || needsPayment) ? '#f9fafb' : 'white',
+                        color: isActive ? c.text : (isLocked || needsPayment) ? '#c4c9d4' : '#374151',
                         fontWeight: isActive ? 800 : 600, fontSize: 13,
                         cursor: isDisabled ? 'not-allowed' : 'pointer',
                         textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.15s',
-                        opacity: isLocked ? 0.5 : 1,
+                        opacity: (isLocked || needsPayment) ? 0.5 : 1,
                       }}
                     >
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: isLocked ? '#d1d5db' : c.dot, flexShrink: 0 }} />
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: (isLocked || needsPayment) ? '#d1d5db' : c.dot, flexShrink: 0 }} />
                       {s.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
                       {isActive && <span style={{ marginLeft: 'auto', fontSize: 11 }}>✓ Current</span>}
-                      {isLocked && <span style={{ marginLeft: 'auto', fontSize: 11 }}>🔒</span>}
+                      {(isLocked || needsPayment) && <span style={{ marginLeft: 'auto', fontSize: 11 }}>🔒</span>}
                     </button>
                   )
                 })}

@@ -340,7 +340,7 @@ export default function Orders() {
                         >
                           <option value="pending" disabled={order.status === 'active'}>Pending</option>
                           <option value="in_review" disabled={order.status === 'active'}>In Review</option>
-                          <option value="active">Active</option>
+                          <option value="active" disabled={order.payment_status === 'unpaid' && order.status !== 'active'}>Active</option>
                           <option value="completed">Completed</option>
                           <option value="cancelled">Cancelled</option>
                           <option value="refunded">Refunded</option>
