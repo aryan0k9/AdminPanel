@@ -660,11 +660,11 @@ export default function MessagesPage() {
     // [DETAIL_REQUEST] admin sent it, show a "waiting" card
     if (text.trim() === '[DETAIL_REQUEST]') {
       return (
-        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'rgba(109,40,217,0.12)', borderRadius:10, border:'1.5px solid rgba(109,40,217,0.25)' }}>
-          <ClipboardList size={18} color="#7c3aed" style={{ flexShrink:0 }} />
+        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'rgba(255,255,255,0.15)', borderRadius:10, border:'1.5px solid rgba(255,255,255,0.3)' }}>
+          <ClipboardList size={18} color="rgba(255,255,255,0.9)" style={{ flexShrink:0 }} />
           <div>
-            <div style={{ fontWeight:700, fontSize:13, color:'#6d28d9' }}>Detail request sent</div>
-            <div style={{ fontSize:12, color:'#8b5cf6', marginTop:2 }}>Waiting for student to fill in Website, Email & Password…</div>
+            <div style={{ fontWeight:700, fontSize:13, color:'#fff' }}>Detail request sent</div>
+            <div style={{ fontSize:12, color:'rgba(255,255,255,0.8)', marginTop:2 }}>Waiting for student to fill in Website, Email & Password…</div>
           </div>
         </div>
       )
