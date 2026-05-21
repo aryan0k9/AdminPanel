@@ -48,6 +48,7 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [updatingStatus, setUpdatingStatus] = useState(false)
+  const [showNoExpertModal, setShowNoExpertModal] = useState(false)
   const [showExpertPicker, setShowExpertPicker] = useState(false)
   const [expertSearch, setExpertSearch] = useState('')
   const [assigningExpert, setAssigningExpert] = useState(false)
@@ -258,6 +259,10 @@ export default function OrderDetailPage() {
   }
 
   async function handleStatusChange(newStatus) {
+    if (newStatus === 'in_review' && !order?.expert_name) {
+      setShowNoExpertModal(true)
+      return
+    }
     setUpdatingStatus(true)
     await supabase.from('orders').update({ status: newStatus }).eq('id', orderId)
     if (order?.user_id) {
@@ -733,7 +738,7 @@ export default function OrderDetailPage() {
           </div>
 
           {/* Expert */}
-          <div className="od-card">
+          <div className="od-card" id="expert-section">
             <div className="od-section">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <div className="od-section-title" style={{ margin: 0 }}>👨‍🏫 Expert</div>
@@ -927,6 +932,39 @@ export default function OrderDetailPage() {
         </div>
       </div>
       {/* Delete Confirmation Modal */}
+      {/* No Expert modal */}
+      {showNoExpertModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setShowNoExpertModal(false)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'white', borderRadius: 18, padding: '32px 28px', maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 24px 60px rgba(0,0,0,0.2)' }}
+          >
+            <div style={{ fontSize: 48, marginBottom: 12 }}>👤</div>
+            <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: '#0f172a' }}>Assign an Expert First</h3>
+            <p style={{ margin: '0 0 24px', fontSize: 14, color: '#64748b' }}>
+              You must assign an expert to this order before setting the status to <strong>In Review</strong>.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setShowNoExpertModal(false)}
+                style={{ flex: 1, padding: '11px', border: '1.5px solid #e2e8f0', borderRadius: 10, background: 'white', fontWeight: 600, fontSize: 14, cursor: 'pointer', color: '#64748b' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { setShowNoExpertModal(false); setShowExpertPicker(true); document.getElementById('expert-section')?.scrollIntoView({ behavior: 'smooth' }) }}
+                style={{ flex: 1, padding: '11px', border: 'none', borderRadius: 10, background: '#0f172a', color: 'white', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+              >
+                Assign Expert →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {deleteConfirm && (
         <div
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
