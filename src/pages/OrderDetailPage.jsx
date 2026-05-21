@@ -266,7 +266,17 @@ export default function OrderDetailPage() {
     setUpdatingStatus(true)
     const statusUpdate = { status: newStatus }
     if (newStatus === 'completed') statusUpdate.completed_at = new Date().toISOString()
-    await supabase.from('orders').update(statusUpdate).eq('id', orderId)
+    let { error: statusError } = await supabase.from('orders').update(statusUpdate).eq('id', orderId)
+    if (statusError && newStatus === 'completed' && statusUpdate.completed_at) {
+      // completed_at column may not exist — retry without it
+      const res = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId)
+      statusError = res.error
+    }
+    if (statusError) {
+      alert('Failed to update status: ' + statusError.message)
+      setUpdatingStatus(false)
+      return
+    }
     if (order?.user_id) {
       const orderNum = order.order_number || order.id
       await createNotification(order.user_id, 'order', 'Order Status Updated', `Your order ${orderNum} is now marked as '${newStatus}'.`)
@@ -276,6 +286,26 @@ export default function OrderDetailPage() {
       status: newStatus,
       ...(newStatus === 'completed' ? { completed_at: statusUpdate.completed_at } : {})
     }))
+
+    // When completing, auto-close any pending reworks for this order
+    if (newStatus === 'completed') {
+      const { data: sessions } = await supabase
+        .from('chat_sessions').select('id').eq('order_id', orderId)
+      if (sessions && sessions.length > 0) {
+        const sessionIds = sessions.map(s => s.id)
+        const { data: reworkMsgs } = await supabase
+          .from('chat_messages').select('id, message')
+          .in('session_id', sessionIds).like('message', '[REWORK_REQ%')
+        if (reworkMsgs && reworkMsgs.length > 0) {
+          for (const msg of reworkMsgs) {
+            const jsonStr = msg.message
+              .replace('[REWORK_REQ] ', '').replace('[REWORK_REQ_READ] ', '')
+            await supabase.from('chat_messages')
+              .update({ message: `[REWORK_DONE] ${jsonStr}` }).eq('id', msg.id)
+          }
+        }
+      }
+    }
 
     // Fire-and-forget status-change email via Brevo. Dedicated 'completion'
     // template for status='completed' (richer download-focused email);

@@ -105,7 +105,18 @@ export default function ReworksPage() {
       return
     }
 
-    // 2. Find the order's chat session and send a completion message to the student
+    // 2. Set order status to completed
+    const completedAt = new Date().toISOString()
+    let { error: orderError } = await supabase.from('orders')
+      .update({ status: 'completed', completed_at: completedAt }).eq('id', req.order.id)
+    if (orderError) {
+      // completed_at column may not exist — retry without it
+      const res = await supabase.from('orders').update({ status: 'completed' }).eq('id', req.order.id)
+      orderError = res.error
+    }
+    if (orderError) console.error('Failed to set order completed:', orderError.message)
+
+    // 3. Find the order's chat session and send a completion message to the student
     const { data: session } = await supabase
       .from('chat_sessions')
       .select('id')
@@ -132,7 +143,7 @@ export default function ReworksPage() {
         updated_at: new Date().toISOString()
       }).eq('id', session.id)
 
-      // 3. Send in-app notification to the student
+      // 4. Send in-app notification to the student
       if (req.order.user_id) {
         try {
           const { createNotification } = await import('../lib/notifications')

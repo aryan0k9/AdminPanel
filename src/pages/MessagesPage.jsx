@@ -884,6 +884,15 @@ export default function MessagesPage() {
                 </div>
                 {messages.map(m => {
                   if (m.message.startsWith('[REWORK_REQ]') || m.message.startsWith('[REWORK_REQ_READ]')) {
+                    let reworkPayload = {}
+                    try {
+                      const jsonStr = m.message
+                        .replace('[REWORK_REQ] ', '')
+                        .replace('[REWORK_REQ_READ] ', '')
+                      reworkPayload = JSON.parse(jsonStr)
+                    } catch (e) {}
+                    const reworkDesc = reworkPayload.description || ''
+                    const reworkFiles = reworkPayload.files || []
                     return (
                       <div key={m.id} className="chat-msg chat-msg-visitor">
                         <div className="chat-msg-avatar">{activeSession.visitor_name?.[0]?.toUpperCase() || '?'}</div>
@@ -892,8 +901,25 @@ export default function MessagesPage() {
                             {activeSession.visitor_name}
                             <span className="chat-msg-time">{new Date(m.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
-                          <div className="chat-msg-bubble" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontWeight: 600, textAlign: 'center' }}>
-                            🚨 REWORK REQUEST SUBMITTED 🚨
+                          <div className="chat-msg-bubble" style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '12px 14px' }}>
+                            <div style={{ fontWeight: 700, color: '#dc2626', fontSize: '13px', textAlign: 'center', marginBottom: (reworkDesc || reworkFiles.length > 0) ? '10px' : 0 }}>
+                              🚨 REWORK REQUEST SUBMITTED 🚨
+                            </div>
+                            {reworkDesc && (
+                              <div style={{ color: '#374151', fontSize: '13px', whiteSpace: 'pre-wrap', background: 'rgba(255,255,255,0.6)', borderRadius: '6px', padding: '8px 10px', marginBottom: reworkFiles.length > 0 ? '8px' : 0 }}>
+                                {reworkDesc}
+                              </div>
+                            )}
+                            {reworkFiles.length > 0 && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                {reworkFiles.map((fileTag, i) => {
+                                  const match = fileTag.match(/\[FILE:::(.*?):::(.*?)\]/)
+                                  if (!match) return null
+                                  const [, filePath, fileName] = match
+                                  return <FileAttachment key={i} filePath={filePath} fileName={fileName} />
+                                })}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
