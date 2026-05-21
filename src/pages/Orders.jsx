@@ -338,8 +338,8 @@ export default function Orders() {
                           onChange={e => updateStatus(order.id, e.target.value)}
                           className="admin-select"
                         >
-                          <option value="pending">Pending</option>
-                          <option value="in_review">In Review</option>
+                          <option value="pending" disabled={order.status === 'active'}>Pending</option>
+                          <option value="in_review" disabled={order.status === 'active'}>In Review</option>
                           <option value="active">Active</option>
                           <option value="completed">Completed</option>
                           <option value="cancelled">Cancelled</option>

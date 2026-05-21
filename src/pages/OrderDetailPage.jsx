@@ -824,21 +824,29 @@ export default function OrderDetailPage() {
                 {STATUS_OPTIONS.map(s => {
                   const c = STATUS_COLOR[s]
                   const isActive = order.status === s
+                  const isLocked = order.status === 'active' && (s === 'pending' || s === 'in_review')
+                  const isDisabled = updatingStatus || isLocked
                   return (
                     <button
                       key={s}
-                      disabled={updatingStatus}
+                      disabled={isDisabled}
                       onClick={() => handleStatusChange(s)}
+                      title={isLocked ? 'Cannot revert to this status once Active' : undefined}
                       style={{
-                        padding: '10px 16px', borderRadius: 10, border: `2px solid ${isActive ? c.dot : '#e5e7eb'}`,
-                        background: isActive ? c.bg : 'white', color: isActive ? c.text : '#374151',
-                        fontWeight: isActive ? 800 : 600, fontSize: 13, cursor: updatingStatus ? 'wait' : 'pointer',
-                        textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.15s'
+                        padding: '10px 16px', borderRadius: 10,
+                        border: `2px solid ${isActive ? c.dot : isLocked ? '#e5e7eb' : '#e5e7eb'}`,
+                        background: isActive ? c.bg : isLocked ? '#f9fafb' : 'white',
+                        color: isActive ? c.text : isLocked ? '#c4c9d4' : '#374151',
+                        fontWeight: isActive ? 800 : 600, fontSize: 13,
+                        cursor: isDisabled ? 'not-allowed' : 'pointer',
+                        textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.15s',
+                        opacity: isLocked ? 0.5 : 1,
                       }}
                     >
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: c.dot, flexShrink: 0 }} />
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: isLocked ? '#d1d5db' : c.dot, flexShrink: 0 }} />
                       {s.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
                       {isActive && <span style={{ marginLeft: 'auto', fontSize: 11 }}>✓ Current</span>}
+                      {isLocked && <span style={{ marginLeft: 'auto', fontSize: 11 }}>🔒</span>}
                     </button>
                   )
                 })}
