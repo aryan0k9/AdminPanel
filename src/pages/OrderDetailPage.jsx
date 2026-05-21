@@ -295,15 +295,23 @@ export default function OrderDetailPage() {
 
   async function assignExpert(expert) {
     setAssigningExpert(true)
-    await supabase.from('orders').update({
+    const shouldSetInReview = order?.status === 'pending'
+    const updatePayload = {
       expert_name: expert.name,
-      expert_avatar: expert.avatarUrl
-    }).eq('id', orderId)
+      expert_avatar: expert.avatarUrl,
+      ...(shouldSetInReview ? { status: 'in_review' } : {}),
+    }
+    await supabase.from('orders').update(updatePayload).eq('id', orderId)
     if (order?.user_id) {
       await createNotification(order.user_id, 'order', 'Expert Assigned!',
         `${expert.name} has been assigned to your order ${order.order_number || orderId}.`)
     }
-    setOrder(prev => ({ ...prev, expert_name: expert.name, expert_avatar: expert.avatarUrl }))
+    setOrder(prev => ({
+      ...prev,
+      expert_name: expert.name,
+      expert_avatar: expert.avatarUrl,
+      ...(shouldSetInReview ? { status: 'in_review' } : {}),
+    }))
     setShowExpertPicker(false)
     setExpertSearch('')
     setAssigningExpert(false)
