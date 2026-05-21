@@ -31,7 +31,7 @@ function parsePlan(order) {
   return { type: 'full', count: 1 }
 }
 
-const STATUS_OPTIONS = ['pending', 'active', 'in_review', 'completed', 'cancelled', 'refunded']
+const STATUS_OPTIONS = ['pending', 'in_review', 'active', 'completed', 'cancelled', 'refunded']
 
 const STATUS_COLOR = {
   pending:   { bg: '#fef3c7', text: '#d97706', dot: '#f59e0b' },
