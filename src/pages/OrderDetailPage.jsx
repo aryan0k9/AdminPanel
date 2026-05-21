@@ -264,12 +264,18 @@ export default function OrderDetailPage() {
       return
     }
     setUpdatingStatus(true)
-    await supabase.from('orders').update({ status: newStatus }).eq('id', orderId)
+    const statusUpdate = { status: newStatus }
+    if (newStatus === 'completed') statusUpdate.completed_at = new Date().toISOString()
+    await supabase.from('orders').update(statusUpdate).eq('id', orderId)
     if (order?.user_id) {
       const orderNum = order.order_number || order.id
       await createNotification(order.user_id, 'order', 'Order Status Updated', `Your order ${orderNum} is now marked as '${newStatus}'.`)
     }
-    setOrder(prev => ({ ...prev, status: newStatus }))
+    setOrder(prev => ({
+      ...prev,
+      status: newStatus,
+      ...(newStatus === 'completed' ? { completed_at: statusUpdate.completed_at } : {})
+    }))
 
     // Fire-and-forget status-change email via Brevo. Dedicated 'completion'
     // template for status='completed' (richer download-focused email);
@@ -837,21 +843,37 @@ export default function OrderDetailPage() {
                 {STATUS_OPTIONS.map(s => {
                   const c = STATUS_COLOR[s]
                   const isActive = order.status === s
+
+                  // Once completed: only Completed (current) and Refunded are accessible
+                  const lockedByCompleted = order.status === 'completed' &&
+                    s !== 'completed' && s !== 'refunded'
+
+                  // Refund window: disabled if order was completed more than 15 days ago
+                  const completedAt = order.completed_at ? new Date(order.completed_at) : null
+                  const daysSinceCompleted = completedAt
+                    ? (Date.now() - completedAt.getTime()) / (1000 * 60 * 60 * 24)
+                    : 0
+                  const refundWindowClosed = s === 'refunded' &&
+                    order.status === 'completed' &&
+                    completedAt && daysSinceCompleted > 15
+
                   const isLocked = order.status === 'active' && (s === 'pending' || s === 'in_review')
                   const needsPayment = s === 'active' && order.payment_status === 'unpaid' && order.status !== 'active'
                   const needsFullPayment = s === 'completed' && order.payment_status !== 'paid' && order.status !== 'completed'
                   const needsActive = s === 'refunded' && order.status !== 'active' && order.status !== 'completed' && order.status !== 'refunded'
-                  const isDisabled = updatingStatus || isLocked || needsPayment || needsFullPayment || needsActive
+                  const isDisabled = updatingStatus || isLocked || needsPayment || needsFullPayment || needsActive || lockedByCompleted || refundWindowClosed
                   return (
                     <button
                       key={s}
                       disabled={isDisabled}
                       onClick={() => handleStatusChange(s)}
                       title={
-                        isLocked       ? 'Cannot revert to this status once Active' :
-                        needsPayment   ? 'Payment must be received before setting Active' :
-                        needsFullPayment ? 'Full payment must be received before marking Completed' :
-                        needsActive    ? 'Order must be Active before initiating a Refund' :
+                        lockedByCompleted  ? 'Cannot change status after order is Completed' :
+                        refundWindowClosed ? 'Refund window has closed (15 days after completion)' :
+                        isLocked           ? 'Cannot revert to this status once Active' :
+                        needsPayment       ? 'Payment must be received before setting Active' :
+                        needsFullPayment   ? 'Full payment must be received before marking Completed' :
+                        needsActive        ? 'Order must be Active before initiating a Refund' :
                         undefined
                       }
                       style={{
@@ -862,13 +884,14 @@ export default function OrderDetailPage() {
                         fontWeight: isActive ? 800 : 600, fontSize: 13,
                         cursor: isDisabled ? 'not-allowed' : 'pointer',
                         textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.15s',
-                        opacity: (isLocked || needsPayment || needsFullPayment || needsActive) ? 0.5 : 1,
+                        opacity: (isLocked || needsPayment || needsFullPayment || needsActive || lockedByCompleted || refundWindowClosed) ? 0.5 : 1,
                       }}
                     >
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: (isLocked || needsPayment || needsFullPayment || needsActive) ? '#d1d5db' : c.dot, flexShrink: 0 }} />
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: (isLocked || needsPayment || needsFullPayment || needsActive || lockedByCompleted || refundWindowClosed) ? '#d1d5db' : c.dot, flexShrink: 0 }} />
                       {s.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
                       {isActive && <span style={{ marginLeft: 'auto', fontSize: 11 }}>✓ Current</span>}
-                      {(isLocked || needsPayment || needsFullPayment || needsActive) && <span style={{ marginLeft: 'auto', fontSize: 11 }}>🔒</span>}
+                      {refundWindowClosed && <span style={{ marginLeft: 'auto', fontSize: 11 }}>⏱️ Expired</span>}
+                      {(isLocked || needsPayment || needsFullPayment || needsActive || lockedByCompleted) && !refundWindowClosed && <span style={{ marginLeft: 'auto', fontSize: 11 }}>🔒</span>}
                     </button>
                   )
                 })}

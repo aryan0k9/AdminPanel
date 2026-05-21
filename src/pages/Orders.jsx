@@ -338,12 +338,20 @@ export default function Orders() {
                           onChange={e => updateStatus(order.id, e.target.value)}
                           className="admin-select"
                         >
-                          <option value="pending" disabled={order.status === 'active'}>Pending</option>
-                          <option value="in_review" disabled={order.status === 'active'}>In Review</option>
-                          <option value="active" disabled={order.payment_status === 'unpaid' && order.status !== 'active'}>Active</option>
-                          <option value="completed" disabled={order.payment_status !== 'paid' && order.status !== 'completed'}>Completed</option>
-                          <option value="cancelled">Cancelled</option>
-                          <option value="refunded" disabled={order.status !== 'active' && order.status !== 'completed' && order.status !== 'refunded'}>Refunded</option>
+                          {(() => {
+                            const isCompleted = order.status === 'completed'
+                            const completedAt = order.completed_at ? new Date(order.completed_at) : null
+                            const daysSince = completedAt ? (Date.now() - completedAt.getTime()) / (1000 * 60 * 60 * 24) : 0
+                            const refundExpired = isCompleted && completedAt && daysSince > 15
+                            return (<>
+                              <option value="pending"    disabled={order.status === 'active' || isCompleted}>Pending</option>
+                              <option value="in_review"  disabled={order.status === 'active' || isCompleted}>In Review</option>
+                              <option value="active"     disabled={(order.payment_status === 'unpaid' && order.status !== 'active') || isCompleted}>Active</option>
+                              <option value="completed"  disabled={order.payment_status !== 'paid' && order.status !== 'completed'}>Completed</option>
+                              <option value="cancelled"  disabled={isCompleted}>Cancelled</option>
+                              <option value="refunded"   disabled={(order.status !== 'active' && order.status !== 'completed' && order.status !== 'refunded') || refundExpired}>Refunded</option>
+                            </>)
+                          })()}
                         </select>
                       </td>
                       <td onClick={e => e.stopPropagation()}>
