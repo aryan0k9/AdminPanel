@@ -441,7 +441,8 @@ export default function PaymentsPage() {
       // 3. Insert payment request message into the session
       if (sessionId) {
         const discountLine = discPct > 0 ? `\n🎉 Special Offer: ${discPct}% off! (Original: $${origAmt.toFixed(2)})` : ''
-        const paymentMsg = `💰 PAYMENT REQUEST${discountLine}\n\nAmount Due: $${offerAmt.toFixed(2)}\nOrder: ${targetOrder.order_number || targetOrder.id}\n\nPlease go to your Payments section to view payment options and complete your payment. Thank you!`
+        const plansLine = allowedPlans.length > 0 ? `\nPlans: ${allowedPlans.join(',')}` : ''
+        const paymentMsg = `💰 PAYMENT REQUEST${discountLine}\n\nAmount Due: $${offerAmt.toFixed(2)}\nOrder: ${targetOrder.order_number || targetOrder.id}${plansLine}\n\nChoose a payment plan below to proceed. Thank you!`
 
         await supabase.from('chat_messages').insert({
           session_id:  sessionId,
