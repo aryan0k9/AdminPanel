@@ -826,28 +826,36 @@ export default function OrderDetailPage() {
                   const isActive = order.status === s
                   const isLocked = order.status === 'active' && (s === 'pending' || s === 'in_review')
                   const needsPayment = s === 'active' && order.payment_status === 'unpaid' && order.status !== 'active'
-                  const isDisabled = updatingStatus || isLocked || needsPayment
+                  const needsFullPayment = s === 'completed' && order.payment_status !== 'paid' && order.status !== 'completed'
+                  const needsActive = s === 'refunded' && order.status !== 'active' && order.status !== 'completed' && order.status !== 'refunded'
+                  const isDisabled = updatingStatus || isLocked || needsPayment || needsFullPayment || needsActive
                   return (
                     <button
                       key={s}
                       disabled={isDisabled}
                       onClick={() => handleStatusChange(s)}
-                      title={isLocked ? 'Cannot revert to this status once Active' : needsPayment ? 'Payment must be received before setting Active' : undefined}
+                      title={
+                        isLocked       ? 'Cannot revert to this status once Active' :
+                        needsPayment   ? 'Payment must be received before setting Active' :
+                        needsFullPayment ? 'Full payment must be received before marking Completed' :
+                        needsActive    ? 'Order must be Active before initiating a Refund' :
+                        undefined
+                      }
                       style={{
                         padding: '10px 16px', borderRadius: 10,
                         border: `2px solid ${isActive ? c.dot : '#e5e7eb'}`,
-                        background: isActive ? c.bg : (isLocked || needsPayment) ? '#f9fafb' : 'white',
-                        color: isActive ? c.text : (isLocked || needsPayment) ? '#c4c9d4' : '#374151',
+                        background: isActive ? c.bg : isDisabled ? '#f9fafb' : 'white',
+                        color: isActive ? c.text : isDisabled ? '#c4c9d4' : '#374151',
                         fontWeight: isActive ? 800 : 600, fontSize: 13,
                         cursor: isDisabled ? 'not-allowed' : 'pointer',
                         textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, transition: 'all 0.15s',
-                        opacity: (isLocked || needsPayment) ? 0.5 : 1,
+                        opacity: (isLocked || needsPayment || needsFullPayment || needsActive) ? 0.5 : 1,
                       }}
                     >
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: (isLocked || needsPayment) ? '#d1d5db' : c.dot, flexShrink: 0 }} />
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: (isLocked || needsPayment || needsFullPayment || needsActive) ? '#d1d5db' : c.dot, flexShrink: 0 }} />
                       {s.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
                       {isActive && <span style={{ marginLeft: 'auto', fontSize: 11 }}>✓ Current</span>}
-                      {(isLocked || needsPayment) && <span style={{ marginLeft: 'auto', fontSize: 11 }}>🔒</span>}
+                      {(isLocked || needsPayment || needsFullPayment || needsActive) && <span style={{ marginLeft: 'auto', fontSize: 11 }}>🔒</span>}
                     </button>
                   )
                 })}
