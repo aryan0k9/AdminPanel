@@ -19,6 +19,7 @@ export default function Orders() {
   const { selectedSite, isAllSites } = useSite()
   const [searchParams, setSearchParams] = useSearchParams()
   const [orders, setOrders] = useState([])
+  const [reworkOrderIds, setReworkOrderIds] = useState(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const navigate = useNavigate()
@@ -102,6 +103,26 @@ export default function Orders() {
       const { data, error } = await query
       if (error) { setError(error.message); setOrders([]) }
       else setOrders(data || [])
+
+      // Fetch order IDs that have a pending rework ([REWORK_REQ] not yet resolved)
+      const { data: reworkMsgs } = await supabase
+        .from('chat_messages')
+        .select('message, session:chat_sessions!inner(order_id)')
+        .like('message', '[REWORK_REQ]%')
+      const { data: doneMsgs } = await supabase
+        .from('chat_messages')
+        .select('session:chat_sessions!inner(order_id)')
+        .like('message', '[REWORK_DONE]%')
+      if (reworkMsgs) {
+        const doneIds = new Set((doneMsgs || []).map(m => m.session?.order_id).filter(Boolean))
+        const pendingIds = new Set(
+          reworkMsgs
+            .map(m => m.session?.order_id)
+            .filter(id => id && !doneIds.has(id))
+        )
+        setReworkOrderIds(pendingIds)
+      }
+
       setLoading(false)
     }
     loadOrders()
@@ -304,17 +325,18 @@ export default function Orders() {
                 {filteredOrders.map(order => {
                   const isOnline = order.user_id && globalOnlineUsers.has(order.user_id)
                   const isNew = newOrderBanner?.id === order.id
+                  const hasRework = reworkOrderIds.has(order.id)
                   return (
                     <tr
                       key={order.id}
                       onClick={() => navigate(`/orders/${order.id}`)}
                       style={{
                         cursor: 'pointer', transition: 'background 0.15s',
-                        background: isNew ? '#f0fdf4' : '',
-                        outline: isNew ? '2px solid #16a34a' : 'none',
+                        background: hasRework ? '#fff1f2' : isNew ? '#f0fdf4' : '',
+                        outline: hasRework ? '2px solid #fca5a5' : isNew ? '2px solid #16a34a' : 'none',
                         outlineOffset: -1
                       }}
-                      onMouseEnter={e => { if (!isNew) e.currentTarget.style.background = '#f8fafc' }}
+                      onMouseEnter={e => { if (!isNew && !hasRework) e.currentTarget.style.background = '#f8fafc' }}
                       onMouseLeave={e => { if (!isNew) e.currentTarget.style.background = '' }}
                     >
                       <td>
@@ -328,7 +350,14 @@ export default function Orders() {
                         </div>
                       </td>
                       <td>{order.subject || '-'}</td>
-                      <td><span className={`admin-status-pill ${order.status}`}>{order.status || 'pending'}</span></td>
+                      <td>
+                        <span className={`admin-status-pill ${order.status}`}>{order.status || 'pending'}</span>
+                        {hasRework && (
+                          <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 800, background: '#ef4444', color: 'white', padding: '2px 7px', borderRadius: 999, verticalAlign: 'middle', letterSpacing: '0.05em' }}>
+                            REWORK
+                          </span>
+                        )}
+                      </td>
                       <td>{order.payment_status || '-'}</td>
                       <td>{formatCurrency(order.paid_amount || order.price || 0)}</td>
                       <td>{formatDateTime(order.created_at)}</td>
