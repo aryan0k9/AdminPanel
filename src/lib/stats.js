@@ -65,7 +65,7 @@ export async function getDashboardStats(siteId = null) {
   try {
     // Build query
     let ordersQuery = supabase.from('orders').select('*')
-    let usersQuery = supabase.from('profiles').select('id, role, created_at')
+    let usersQuery = supabase.from('profiles').select('id, full_name, email, role, created_at')
 
     if (siteId) {
       ordersQuery = ordersQuery.eq('site_id', siteId)

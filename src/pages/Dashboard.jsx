@@ -178,9 +178,7 @@ export default function Dashboard() {
         <div className="admin-card">
           <div className="admin-card-header">
             <h3 className="admin-card-title">📦 Recent Orders</h3>
-            <button className="admin-card-link" disabled>
-              View all (soon) →
-            </button>
+            <Link to="/orders" className="admin-card-link">View all →</Link>
           </div>
           <div className="admin-card-body">
             {stats.recentOrders.length === 0 ? (
@@ -192,7 +190,12 @@ export default function Dashboard() {
             ) : (
               <div className="admin-list">
                 {stats.recentOrders.map((order) => (
-                  <div key={order.id} className="admin-list-item">
+                  <Link
+                    key={order.id}
+                    to={`/orders/${order.id}`}
+                    className="admin-list-item"
+                    style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
+                  >
                     <div className="admin-list-info">
                       <div className="admin-list-title">{order.order_number}</div>
                       <div className="admin-list-subtitle">
@@ -204,16 +207,16 @@ export default function Dashboard() {
                         ● {order.status}
                       </span>
                       <span className="admin-list-time">{timeAgo(order.created_at)}</span>
-                      <Link 
-                        to={`/messages?tab=order&orderId=${order.id}`}
+                      <span
+                        onClick={e => { e.preventDefault(); e.stopPropagation(); navigate(`/messages?tab=order&orderId=${order.id}`) }}
                         className="admin-btn admin-btn-outline"
                         style={{ padding: '4px', minWidth: 'auto', display: 'flex', alignItems: 'center' }}
                         title="Message Student"
                       >
                         <MessageSquare size={14} />
-                      </Link>
+                      </span>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -224,9 +227,7 @@ export default function Dashboard() {
         <div className="admin-card">
           <div className="admin-card-header">
             <h3 className="admin-card-title">👥 Recent Users</h3>
-            <button className="admin-card-link" disabled>
-              View all (soon) →
-            </button>
+            <Link to="/users" className="admin-card-link">View all →</Link>
           </div>
           <div className="admin-card-body">
             {stats.recentUsers.length === 0 ? (
@@ -238,19 +239,24 @@ export default function Dashboard() {
             ) : (
               <div className="admin-list">
                 {stats.recentUsers.map((user) => (
-                  <div key={user.id} className="admin-list-item">
+                  <Link
+                    key={user.id}
+                    to={`/users/${user.id}`}
+                    className="admin-list-item"
+                    style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
+                  >
                     <div className="admin-list-info">
                       <div className="admin-list-title">
-                        {user.full_name || 'Unnamed user'}
+                        {user.full_name || user.email || 'Unnamed user'}
                       </div>
                       <div className="admin-list-subtitle">
-                        {user.role || 'student'}
+                        {user.email && user.full_name ? user.email : (user.role || 'student')}
                       </div>
                     </div>
                     <div className="admin-list-meta">
                       <span className="admin-list-time">{timeAgo(user.created_at)}</span>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
