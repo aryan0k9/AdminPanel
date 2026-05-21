@@ -48,7 +48,15 @@ export default function ReworksPage() {
       let q = supabase.from('orders').select('*').in('id', orderIds)
       if (selectedSite && !isAllSites) q = q.eq('site_id', selectedSite.id)
       const { data: orders } = await q
-      if (orders) orders.forEach(o => { ordersMap[o.id] = o })
+      if (orders) {
+        orders.forEach(o => { ordersMap[o.id] = o })
+        // Auto-set completed orders back to active when a rework arrives
+        const needsActive = orders.filter(o => o.status === 'completed').map(o => o.id)
+        if (needsActive.length > 0) {
+          await supabase.from('orders').update({ status: 'active' }).in('id', needsActive)
+          needsActive.forEach(id => { if (ordersMap[id]) ordersMap[id].status = 'active' })
+        }
+      }
     }
 
     // Build list ALL reworks, each one is its own row (no grouping)

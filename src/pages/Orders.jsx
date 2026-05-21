@@ -104,23 +104,31 @@ export default function Orders() {
       if (error) { setError(error.message); setOrders([]) }
       else setOrders(data || [])
 
-      // Fetch order IDs that have a pending rework ([REWORK_REQ] not yet resolved)
+      // Fetch order IDs that have a pending rework (not yet marked DONE)
+      // Step 1: get session_ids for pending reworks ([REWORK_REQ] or [REWORK_REQ_READ])
       const { data: reworkMsgs } = await supabase
         .from('chat_messages')
-        .select('message, session:chat_sessions!inner(order_id)')
-        .like('message', '[REWORK_REQ]%')
+        .select('session_id')
+        .like('message', '[REWORK_REQ%')   // matches [REWORK_REQ] and [REWORK_REQ_READ]
+      // Step 2: get session_ids already marked done
       const { data: doneMsgs } = await supabase
         .from('chat_messages')
-        .select('session:chat_sessions!inner(order_id)')
+        .select('session_id')
         .like('message', '[REWORK_DONE]%')
       if (reworkMsgs) {
-        const doneIds = new Set((doneMsgs || []).map(m => m.session?.order_id).filter(Boolean))
-        const pendingIds = new Set(
-          reworkMsgs
-            .map(m => m.session?.order_id)
-            .filter(id => id && !doneIds.has(id))
-        )
-        setReworkOrderIds(pendingIds)
+        const doneSessionIds = new Set((doneMsgs || []).map(m => m.session_id))
+        const pendingSessionIds = [...new Set(
+          reworkMsgs.map(m => m.session_id).filter(id => id && !doneSessionIds.has(id))
+        )]
+        if (pendingSessionIds.length > 0) {
+          const { data: sessions } = await supabase
+            .from('chat_sessions')
+            .select('order_id')
+            .in('id', pendingSessionIds)
+          setReworkOrderIds(new Set((sessions || []).map(s => s.order_id).filter(Boolean)))
+        } else {
+          setReworkOrderIds(new Set())
+        }
       }
 
       setLoading(false)
